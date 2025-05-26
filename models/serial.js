@@ -9,7 +9,14 @@ const serialSchema = new mongoose.Schema({
   available: Number,
   type: String,
   memo: String,
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date },
+  status: {
+    type: String,
+    enum: ['active', 'expired', 'revoked', 'suspended'],
+    default: 'active'
+  },
+  licenseCount: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('serial', serialSchema);
