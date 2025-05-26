@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const License = require('../models/License');
-const Serial = require('../models/Serial'); // 추가
+const License = require('../models/license.js');
+const Serial = require('../models/serial.js'); // 추가
 
 
 function generateSerialKey(company, software) {

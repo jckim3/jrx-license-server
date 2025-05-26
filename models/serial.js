@@ -12,4 +12,4 @@ const serialSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Serial', serialSchema);
+module.exports = mongoose.model('serial', serialSchema);
