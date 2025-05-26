@@ -120,4 +120,26 @@ router.get('/serials', async (req, res) => {
   }
 });
 
+// ✅ 시리얼 수정 (예: expiresAt 변경)
+router.put('/serials/:id', async (req, res) => {
+  const { id } = req.params;
+  const { expiresAt } = req.body;
+
+  try {
+    const updated = await Serial.findByIdAndUpdate(
+      id,
+      { expiresAt: expiresAt ? new Date(expiresAt) : null },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Serial not found' });
+    }
+
+    res.json({ success: true, serial: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
