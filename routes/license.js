@@ -12,7 +12,9 @@ function generateSerialKey(company, software) {
 
 // GET /api/check?key=...&mac=...
 router.get('/check', async (req, res) => {
-  const { key, mac } = req.query;
+  const key = (req.query.key || '').trim();
+  const mac = (req.query.mac || '').trim();
+
   if (!key || !mac) return res.status(400).send('Missing key or mac');
 
   const license = await License.findOne({ key, mac });
