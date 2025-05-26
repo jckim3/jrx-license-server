@@ -7,4 +7,4 @@ const licenseSchema = new mongoose.Schema({
   lastChecked: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('License', licenseSchema);
+module.exports = mongoose.model('license', licenseSchema);
