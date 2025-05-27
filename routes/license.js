@@ -10,14 +10,14 @@ function generateSerialKey(company, software) {
 }
 
 // ✅ 라이선스 유효성 체크
-// GET /api/check?key=...&mac=...
+// GET /api/check?key=...&signature=...
 router.get('/check', async (req, res) => {
   const key = (req.query.key || '').trim();
-  const mac = (req.query.mac || '').trim();
+  const signature = (req.query.signature || '').trim();
 
-  if (!key || !mac) return res.status(400).send('Missing key or mac');
+  if (!key || !signature) return res.status(400).send('Missing key or signature');
 
-  const license = await License.findOne({ key, mac });
+  const license = await License.findOne({ key, signature });
   if (!license) return res.status(403).send('Invalid license');
 
   const serial = await Serial.findOne({ key });
@@ -36,33 +36,31 @@ router.get('/check', async (req, res) => {
 // ✅ 라이선스 등록
 // POST /api/register
 router.post('/register', async (req, res) => {
-  const { key, mac } = req.body;
+  const { key, signature } = req.body;
 
-  if (!key || !mac) return res.status(400).send('❌ Missing key or mac');
+  if (!key || !signature) return res.status(400).send('❌ Missing key or signature');
 
   const serial = await Serial.findOne({ key });
   if (!serial) return res.status(403).send('❌ Invalid or unissued serial key');
 
-  // 상태 및 만료일 확인
   if (serial.status !== 'active') return res.status(403).send(`❌ Serial status: ${serial.status}`);
   if (serial.expiresAt && new Date() > serial.expiresAt)
     return res.status(403).send('❌ Serial expired');
 
-  // 이미 같은 MAC이 등록되어 있으면 통과
-  const existing = await License.findOne({ key, mac });
+  // 이미 같은 signature가 등록되어 있으면 통과
+  const existing = await License.findOne({ key, signature });
   if (existing) return res.status(200).send('✅ Already registered');
 
   // 등록된 장비 수 초과 여부 확인
   const count = await License.countDocuments({ key });
-  if (serial.available !== undefined && count >= serial.available)
+  if (serial.deviceLimit !== undefined && count >= serial.deviceLimit)
     return res.status(409).send('❌ License limit exceeded');
 
   // 등록
   try {
-    const newLicense = new License({ key, mac, lastChecked: new Date() });
+    const newLicense = new License({ key, signature, lastChecked: new Date() });
     await newLicense.save();
 
-    // licenseCount 업데이트
     await Serial.updateOne({ key }, { $inc: { licenseCount: 1 } });
 
     return res.status(201).send('✅ License registered');
@@ -73,7 +71,7 @@ router.post('/register', async (req, res) => {
 
 // ✅ 시리얼 등록
 router.post('/serials', async (req, res) => {
-  const { hospital, country, company, software, available, type, memo } = req.body;
+  const { hospital, country, company, software, deviceLimit, type, memo } = req.body;
   if (!company || !software) {
     return res.status(400).json({ success: false, message: 'Missing required fields.' });
   }
@@ -87,7 +85,7 @@ router.post('/serials', async (req, res) => {
       country,
       company,
       software,
-      available,
+      deviceLimit,
       type,
       memo,
       status: 'active',
@@ -106,7 +104,6 @@ router.get('/serials', async (req, res) => {
   try {
     const serials = await Serial.find().sort({ createdAt: -1 });
 
-    // 각 시리얼에 대해 licenseCount 갱신 (optional: remove if already maintained)
     const updated = await Promise.all(
       serials.map(async (serial) => {
         const count = await License.countDocuments({ key: serial.key });
